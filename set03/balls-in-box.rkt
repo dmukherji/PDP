@@ -25,17 +25,20 @@
 ;; =============================================================================
 
 ;; ========================== DATA DEFINITIONS =================================
-;; A Ball is a (make-struct Integer Integer)
-(define-struct ball (xco yco selected?))
+;; A Ball is a (make-struct Integer Integer Posn)
+(define-struct ball (xco yco selected? mouseloc))
 ;; INTERPRETATION:
 ;; xco is the x-coordinate of the center of the ball in pixels
 ;; yco is the y-coordinate of the center of the ball in pixels
 ;; selected? indicates whether the ball is selected or not
+;; mouseloc is a Posn which indicates the x and y coordinates of the mouse
 ;; TEMPLATE:
 ;; (define (ball-fn bouncer)
 ;;   (...
 ;;    (ball-xco bouncer)
-;;    (ball-yco bouncer)))
+;;    (ball-yco bouncer)
+;;    (ball-selected? bouncer)
+;;    (ball-mouseloc bouncer))
 
 ;; A ListOf<Balls> is one of:
 ;; -- empty
@@ -119,15 +122,18 @@
   (make-world (cons (make-new-ball w) (world-list w)) (+ (world-count w) 1)))
 
 (define (make-new-ball w)
-  (make-ball (posn-x CANVAS-CENTER) (posn-y CANVAS-CENTER) false))
+  (make-ball (posn-x CANVAS-CENTER) (posn-y CANVAS-CENTER) false 
+             (make-posn 0 0)))
 
 (define (delete-ball w)
   (cond
     [(empty? (world-list w)) w]
-    [(cons? (world-list w)) (if (check-selected (first (world-list w)))
-                                (make-world (cons (rest (world-list w))) (- (world-count w) 1)))]))
+    [(cons? (world-list w)) (if (check-selected? (first (world-list w)))
+                                (make-world (remove (first (world-list w))
+                                                    (world-list w)) 
+                                            (- (world-count w) 1)) w)]))
 
-(define (check-selected checkball)
+(define (check-selected? checkball)
   (ball-selected? checkball))
 
 ;; world-after-mouse-event : World Integer Integer MouseEvent -> World
@@ -135,28 +141,95 @@
 ;; and a BallMouseEvent
 ;; RETURNS: the world that should follow the given world after the given
 ;; mouse event.
-(define (world-after-mouse-event w mx my mev)
+#;(define (world-after-mouse-event w mx my mev)
   (cond
-    [(empty? (world-list w)) empty]
-    [(cond? (world-list w)) (if (within-circ? (first (world-list w)) mx my)
+    [(empty? (world-list w)) (make-world empty 0)]
+    [(cons? (world-list w)) (if (within-circ? (first (world-list w)) mx my)
                                 (make-world (cons (ball-after-mouse-event 
                                                    (first (world-list w)) 
                                                    mx my mev) 
                                                   (rest (world-list w)))
-                                            (world-count w)))]))
+                                            (world-count w)) 
+                                (world-after-mouse-event 
+                                 (make-world (rest (world-list w)) 
+                                             (world-count w)) mx my mev))]))
 
-(define (ball-after-mouse-event singleball mx my mev)
+(define (world-after-mouse-event w mx my mev)
+  (cond
+    [(mouse=? mev "button-down") (ball-after-button-down w mx my)]
+    [(mouse=? mev "drag") (ball-after-drag w mx my)]
+    [(mouse=? mev "button-up") (ball-after-button-up w mx my)]
+    [else w]))
+
+#;(define (ball-after-mouse-event singleball mx my mev)
   (cond
     [(mouse=? mev "button-down") (ball-after-button-down singleball mx my)]
     [(mouse=? mev "drag") (ball-after-drag singleball mx my)]
-    [(mouse=? mev "button-up") (ball-after-button-down singleball mx my)]
+    [(mouse=? mev "button-up") (ball-after-button-up singleball mx my)]
     [else singleball]))
 
-(define (ball-after-button-down singleball mx my)
-  (make-ball 
+(define (ball-after-button-down w mx my)
+  (if (within-circ? (first (world-list w)) mx my)
+  (make-world (cons (make-ball (ball-xco (first (world-list w))) 
+                               (ball-xco (first (world-list w)))
+                               true (make-posn mx my)) (rest (world-list w)))
+              (world-count w)) w))
+
+(define (ball-after-button-up w mx my)
+  (make-ball (ball-xco singleball) (ball-yco singleball) false 
+             (ball-mouseloc singleball)))
+
+(define (ball-after-drag singleball mx my)
+  (if (ball-selected? singleball)
+  (make-ball (+ (ball-xco singleball) 
+                (- mx (posn-x (ball-mouseloc singleball))))
+             (+ (ball-yco singleball) 
+                (- my (posn-y (ball-mouseloc singleball))))
+             true
+             (make-posn mx my)) singleball))
+
+#;(define (ball-after-button-up singleball mx my)
+  (make-ball (ball-xco singleball) (ball-yco singleball) false 
+             (ball-mouseloc singleball)))
+
+#;(define (ball-after-drag singleball mx my)
+  (if (ball-selected? singleball)
+  (make-ball (+ (ball-xco singleball) 
+                (- mx (posn-x (ball-mouseloc singleball))))
+             (+ (ball-yco singleball) 
+                (- my (posn-y (ball-mouseloc singleball))))
+             true
+             (make-posn mx my)) singleball))
+
+(define (within-circ? singleball mx my)
+  (< (+ (expt (- mx (ball-xco singleball)) 2) (expt (- my (ball-yco singleball)) 2))
+     (expt CIRCLE-RADIUS 2)))
+
+(define (world-to-scene w)
+  (cond
+    [(empty? w) EMPTY-CANVAS]
+    [(empty? (world-list w)) EMPTY-CANVAS]
+    [else (place-image (drawcirc (first (world-list w)))
+                                         (circxco (first (world-list w)))
+                                         (circyco (first (world-list w)))
+                                         (world-to-scene 
+                                          (make-world 
+                                           (rest (world-list w)) (world-count w)
+                                           )))]))
+
+(define (drawcirc singleball)
+  (if (ball-selected? singleball) (circle CIRCLE-RADIUS CIRCLE-SELECTED CIRCLE-COLOR)
+      (circle CIRCLE-RADIUS CIRCLE-DESELECTED CIRCLE-COLOR)))
+
+(define (circxco singleball)
+  (ball-xco singleball))
+
+(define (circyco singleball)
+  (ball-yco singleball))
+  
                                 
                                 
      
-;; make within-circ?     
+   
      
      
