@@ -1,0 +1,17 @@
+Date   Who       Start Stop  Interruptions Question TimeOnTask    Comments
+02/09  DM        12:10 12:30 0             1        20            Reading and understanding question 1 as well as recursion
+02/09  DM        12:30 13:25 10            1        45            Writing data definitions
+02/09  DM        13:35 14:15 0             1        40            Writing inventory-potential-profit and inventory-total-volume function
+02/09  DM        14:15 15:00 0             1        45            Writing the price-for-line-item function
+02/09  DM        15:00 16:20 25            1        55            Defining the fillable-now? function
+02/09  DM        16:20 17:30 10            1        60            Writing the days-till-fillable function
+02/09  DM        17:45 18:15 0             1        30            Writing the price-for-order function
+02/09  DM        18:20 19:00 0             1        40            Writing the inventory-after-order function
+02/09  DM        19:00 19:35 5             1        30            Writing the increase-prices function
+02/09  DM        20:00 20:40 5             1        35            Debugging the inventory-after-order and increase-prices function
+02/09  DM        20:55 21:40 10            2        35            Reading and understanding the question 2 as well as image libraries with recursion
+02/09  DM        21:55 22:20 10            1        15            Fixing format of comments in question 1
+==== COMMITING TO GITHUB at 22:25 on 02/09 ====
+
+Total Time On Task Q1 (minutes)                  415 
+TOTQ1 (hours and tenths)                         6.6
